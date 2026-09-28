@@ -1,171 +1,118 @@
 # Wumpus
 
-Libera a transmissão de tela do Discord no Brasil, sem deixar você com ping
-estrangeiro.
+Traz de volta a transmissão de tela do Discord no Brasil, sem deixar você com
+ping estrangeiro.
 
-## Como funciona
-
-O Discord decide se libera a transmissão de tela **uma vez, no momento em que
-o programa abre**. Depois disso a VPN pode cair — você continua transmitindo
-normalmente.
-
-O Wumpus automatiza exatamente essa janela: sobe um túnel, reinicia o Discord
-por baixo dele, confirma que ele conectou pelo túnel, e derruba o túnel.
-
-**O ciclo inteiro leva cerca de 12 segundos**, e acontece sozinho no boot. O
-resto do tempo sua conexão é a normal, com o ping de sempre.
-
-## Instalação
-
-1. Baixe o `Wumpus.exe` na [página de releases](https://github.com/zxOrion/Wumpus/releases)
-2. Abra e clique em **Configurar agora**
-   - Ele instala o WireGuard sozinho (confirme a janela do Windows)
-   - Siga o passo indicado para obter sua config
-   - O download da config é detectado automaticamente
-3. Marque ☑ **Iniciar com o Windows**
-
-A partir do próximo boot funciona sozinho.
-
-### Você precisa de uma conta de VPN própria
-
-O **Proton VPN tem plano gratuito** e o cadastro leva uns 2 minutos — é
-suficiente, porque o programa usa o túnel por poucos segundos de cada vez.
-
-Não distribuo uma config pronta de propósito: o arquivo `.conf` contém uma
-chave privada. Uma config compartilhada publicamente vira um túnel aberto
-para qualquer um, no nome de quem paga a conta — e, como contas gratuitas
-permitem só uma conexão simultânea, basta uma pessoa segurando a conexão
-para o programa parar de funcionar para todo mundo.
-
-Serve qualquer provedor que gere `.conf` do WireGuard: **Proton** (grátis),
-**Windscribe** (10 GB/mês grátis), **Mullvad** (pago, sem cadastro).
-
-## Atualizações
-
-Abra o programa, clique em **sobre** (no rodapé) e depois em **Procurar
-atualizações**. Se houver versão nova, ele mostra o que mudou, baixa, confere
-a integridade do arquivo e se substitui sozinho — reabrindo em seguida.
-
-Suas configurações e sua config de VPN são preservadas: elas ficam em
-`%LOCALAPPDATA%\DiscordTunnelBoot`, fora do executável.
-
-## Uso
-
-Depois de instalado, nada. O Discord abre sozinho no boot já desbloqueado.
-
-Para rodar na hora — depois de reiniciar o Discord manualmente, por exemplo —
-abra o programa e ligue o botão principal.
-
-## Se algo der errado
-
-O túnel **sempre** cai, por cinco caminhos independentes: `try/finally`,
-sinais, `atexit`, um processo guardião que vigia se o principal morrer à
-força, e uma reconciliação no boot seguinte.
-
-Se ainda assim travar:
-
-```powershell
-Wumpus.exe recover
-```
-
-**Logs:** clique em "logs" no rodapé da janela, ou vá em
-`%LOCALAPPDATA%\DiscordTunnelBoot\logs`.
-
-O log explica *por que* falhou. A linha mais útil é:
-
-```
-laddr mismatch: 192.168.15.51 != 10.2.0.5
-```
-
-Significa que o Discord conectou, mas pela conexão normal em vez do túnel —
-geralmente porque outra VPN (Cloudflare WARP, Proton, Surfshark) capturou a
-rota. Desligue as outras VPNs antes de rodar.
-
-### Limitação conhecida
-
-A negociação de vídeo acontece quando a call começa, horas depois do túnel ter
-caído e fora do alcance do programa. Ocasionalmente isso causa live com tela
-preta e áudio funcionando (erro 2012). Reiniciar o Discord resolve.
-
-Não é corrigível sem manter o túnel ativo durante a call — o que traria de
-volta o ping estrangeiro que o programa existe para evitar.
-
-## Comandos (opcional)
-
-A janela cobre o uso normal. Para diagnóstico:
-
-| Comando | O que faz |
-|---|---|
-| `Wumpus.exe` | Abre a janela |
-| `... doctor` | Diagnóstico completo do ambiente |
-| `... run` | Executa o fluxo agora |
-| `... run --dry-run` | Testa tudo sem mexer em rede |
-| `... recover` | Destrava túnel preso |
-| `... uninstall` | Remove o autostart |
-
-## Ajustes finos
-
-Crie `%LOCALAPPDATA%\DiscordTunnelBoot\config.toml`:
-
-```toml
-[detect]
-settle_after_detect_s = 45   # padrão 20 — aumente se o desbloqueio falhar
-timeout_s = 90               # padrão 60 — aumente se o boot for lento
-
-[safety]
-abort_if_other_vpn_active = true   # aborta se detectar outra VPN ativa
-```
+Você abre o Discord pelo Wumpus, e o botão de transmitir aparece. Seus jogos,
+downloads e o resto da internet continuam com a sua conexão normal.
 
 ---
 
-## Para desenvolvedores
+## Download
 
-```powershell
-# rodar do fonte
-python -m discord_tunnel_boot gui
+Baixe o **`Wumpus.exe`** na [página de releases](https://github.com/zxOrion/Wumpus/releases/latest)
+e abra. Não tem instalador: na primeira vez ele se instala sozinho e deixa um
+atalho na Área de Trabalho.
 
-# compilar
-python build.py                 # -> dist\Wumpus.exe  (para a release)
-python build.py --com-configs   # -> dist\Wumpus-pessoal.exe  (uso próprio)
+**Requisitos:** Windows 10 ou 11 e o Discord normal (não o PTB nem o Canary).
 
-# testes
-python testes\test_versoes.py
-python testes\test_rede.py
-python testes\test_recuperacao.py
-```
+### Avisos do Windows na primeira vez
 
-Encerre todos os processos Wumpus antes de compilar, ou o `.exe` fica travado
-e o build falha com `PermissionError`.
+- **"O Windows protegeu o computador"**: clique em **Mais informações** →
+  **Executar assim mesmo**. Aparece porque o programa não tem assinatura
+  digital paga, e não porque tenha algo errado.
+- **Pedido de permissão de administrador**: aceite. O Wumpus precisa dela para
+  cuidar da conexão do Discord.
+- **Antivírus**: alguns antivírus desconfiam de programas pequenos e sem
+  assinatura. Se o seu bloquear, adicione o Wumpus às exceções.
+- **WireGuard**: se o Wumpus pedir o WireGuard, instale pelo link que ele
+  mostra. É um componente gratuito e oficial.
 
-**Estrutura:**
+---
 
-| Módulo | Responsabilidade |
-|---|---|
-| `orchestrator.py` | Máquina de estados, restauração em camadas |
-| `detector.py` | Confirma conexão **através do túnel** (via `LocalAddress`) |
-| `discord.py` | Localiza, encerra e lança a árvore Electron |
-| `tunnel/` | Driver abstrato + WireGuard + dry-run |
-| `guardian.py` | Watchdog externo contra `TerminateProcess` |
-| `updater.py` | Atualização pelo GitHub Releases |
-| `conf_pool.py` | Rodízio entre as configs disponíveis |
-| `state_file.py` | Journal atômico |
-| `setup_wizard.py` | Instalação do WireGuard + import do `.conf` |
-| `gui.py` | Janela tkinter |
-| `paths.py` | Resolução portátil de caminhos |
+## Como usar
 
-**Detalhes que não são óbvios:**
+1. **Abra o Discord pelo Wumpus.** Se o Discord já estiver aberto, o Wumpus
+   oferece fechar e reabrir.
+2. **Antes de cada live**, seja para começar a sua ou para assistir a de
+   alguém, clique em **Liberar live agora** ou aperte **Ctrl + Alt + L** de
+   dentro do Discord.
 
-- A detecção compara o `LocalAddress` da conexão com o IP do túnel. Sem isso,
-  o Discord conectando pela Ethernet daria falso positivo.
-- O Discord precisa ser encerrado **antes** de subir o túnel, senão as
-  conexões antigas (fora do túnel) enganam o detector.
-- `DiscordSystemHelper.exe` é processo separado e **não** deve ser morto.
-- A raiz da árvore Electron é identificada pela cmdline **sem `--type=`** — o
-  processo pai já morreu, então parentesco não serve.
-- O autostart usa Task Scheduler com `RunLevel=Highest`, não o registro Run:
-  o registro não roda elevado, e o túnel exige admin.
-- O guardião sobrevive ao programa por até 300s e **trava o `.exe`**. Por isso
-  o updater encerra quem segura o arquivo antes de substituí-lo.
-- As configs são copiadas para `%LOCALAPPDATA%\...\wg\pool\` na primeira
-  execução, e a partir daí o programa ignora o que está embutido no `.exe` —
-  é o que permite atualizar o binário sem perder o pool.
+A liberação vale por live, porque o Discord confere de novo sempre que uma
+transmissão começa. Saiu de uma e vai entrar em outra? Aperte o atalho de novo.
+
+O atalho pode ser trocado em **atalho**, no rodapé da janela.
+
+### Iniciar com o Windows
+
+Ligue a opção **Iniciar com o Windows** na janela. O Discord já abre
+desbloqueado quando o PC liga, e o Wumpus fica recolhido na bandeja, perto do
+relógio.
+
+### Se o Discord recarregar
+
+Deu **Ctrl + R** no Discord, ou o PC voltou da suspensão? O Wumpus percebe e
+deixa o Discord desbloqueado de novo sozinho. Não precisa reabrir nada.
+
+---
+
+## Atualizações
+
+O Wumpus avisa quando sai versão nova. Para procurar na mão, vá em **sobre** →
+**Procurar atualizações**. Ele baixa, confere a integridade do arquivo e reabre
+sozinho.
+
+**O Discord continua aberto durante a atualização**, então dá para atualizar
+no meio de uma call. Suas configurações são mantidas.
+
+---
+
+## Privacidade
+
+- O Wumpus **não coleta dados** e não lê o que você digita.
+- Para liberar, a conexão do Discord passa alguns segundos por um servidor no
+  exterior. Ela é criptografada: o servidor não vê suas mensagens nem sua
+  senha.
+- Nada além do Discord passa pelo Wumpus.
+
+---
+
+## Problemas comuns
+
+**O botão de transmitir não apareceu.**
+Clique em **Fechar e reabrir o Discord** na janela do Wumpus.
+
+**A live abriu com tela preta, mas com som.**
+Aperte o atalho (ou **Liberar live agora**) e entre na live de novo.
+
+**O Wumpus avisa que há outra VPN ligada.**
+Desligue a outra VPN (Cloudflare WARP, Proton, Surfshark etc.) enquanto usa o
+Wumpus. As duas brigam pela conexão.
+
+**Nada disso resolveu.**
+Clique em **logs** no rodapé da janela e mande o arquivo mais recente para
+quem te passou o programa.
+
+### Usar a sua própria VPN
+
+Se você já tem uma VPN com suporte a WireGuard, ligue **Usar a minha própria
+VPN** e importe o arquivo `.conf` dela (preferencialmente o da ProtonVPN). O Wumpus passa a usar só a sua.
+
+---
+
+## Desinstalar
+
+Vá em **sobre** → **Desinstalar**. O Wumpus remove a inicialização automática,
+o atalho e os próprios arquivos, e deixa o Discord como era antes.
+
+---
+
+## Apoie o projeto
+
+O Wumpus é gratuito e feito no meu tempo livre. Se ele te ajuda, tem um botão
+**Apoiar o projeto** no rodapé da janela, com Pix. Qualquer valor ajuda, e
+nenhum é obrigatório.
+
+---
+
+<sub>Feito por **Orion**. Discord é marca da Discord Inc.</sub>
